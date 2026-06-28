@@ -55,6 +55,35 @@ class SimpleImputer(VldmEstimatorMixin, _Sk):
         return state
 
     @classmethod
+    def from_sklearn(cls, sk: _Sk) -> SimpleImputer:
+        """Build a fully-fitted SimpleImputer from a fitted sklearn SimpleImputer.
+
+        Rejects add_indicator=True (out of Phase A scope) the same way _to_state_dict does.
+        missing_values is in _init_param_keys so it is copied by the standard init-param pass.
+        """
+        if getattr(sk, "indicator_", None) is not None:
+            raise UnsupportedConversionError(
+                type(sk).__qualname__,
+                "from_sklearn",
+                (
+                    "Phase A audit showed add_indicator=False only; "
+                    "extend _state_keys + _to/_from_state_dict to support "
+                    "the MissingIndicator child."
+                ),
+            )
+        init = {k: getattr(sk, k) for k in cls._init_param_keys if hasattr(sk, k)}
+        obj = cls(**init)
+        for k in cls._state_keys:
+            if not hasattr(sk, k):
+                raise UnsupportedConversionError(
+                    type(sk).__qualname__,
+                    "from_sklearn",
+                    f"missing fitted attribute {k!r}; was the object fit?",
+                )
+            setattr(obj, k, getattr(sk, k))
+        return obj
+
+    @classmethod
     def _from_state_dict(cls, obj: SimpleImputer, state: dict[str, np.ndarray]) -> None:
         """Override to deserialize _fit_dtype from string representation."""
         # Handle regular state keys

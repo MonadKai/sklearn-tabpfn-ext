@@ -5,6 +5,7 @@ from __future__ import annotations
 from sklearn.decomposition import TruncatedSVD as _Sk
 
 from sklearn_tabpfn_ext.base import VldmEstimatorMixin
+from sklearn_tabpfn_ext.exceptions import UnsupportedConversionError
 from sklearn_tabpfn_ext.registry import register
 
 
@@ -26,3 +27,18 @@ class TruncatedSVD(VldmEstimatorMixin, _Sk):
         "random_state",
         "tol",
     )
+
+    @classmethod
+    def from_sklearn(cls, sk: _Sk) -> TruncatedSVD:
+        """Build a fully-fitted TruncatedSVD from a fitted sklearn TruncatedSVD."""
+        init = {k: getattr(sk, k) for k in cls._init_param_keys if hasattr(sk, k)}
+        obj = cls(**init)
+        for k in cls._state_keys:
+            if not hasattr(sk, k):
+                raise UnsupportedConversionError(
+                    type(sk).__qualname__,
+                    "from_sklearn",
+                    f"missing fitted attribute {k!r}; was the object fit?",
+                )
+            setattr(obj, k, getattr(sk, k))
+        return obj
