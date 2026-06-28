@@ -24,6 +24,7 @@ include = ["sklearn_tabpfn_ext*"]
 testpaths = ["tests"]
 markers = [
     "tabpfn: requires the optional tabpfn dependency (install via .[tabpfn])",
+    "gpu_ladder: end-to-end parity tests requiring a fitted TabPFN pickle (set VLDM_TABPFN_BINARY_PICKLE)",
 ]
 
 [tool.ruff]
