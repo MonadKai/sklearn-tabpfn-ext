@@ -3,6 +3,14 @@
 Shared, transform-only TabPFN preprocessing operators + JSON/NPZ codec,
 extracted from vldm. See the ldmkit design spec.
 
+## License & provenance
+
+Apache-2.0 (see [LICENSE](LICENSE)). This library was extracted and adapted from
+[vldm](https://github.com/MonadKai/vldm)'s `vldm/preprocessing/` subsystem and
+`scripts/tabpfn_translator.py` (also Apache-2.0) — moved verbatim except for
+import-namespace rewrites and a codec change that keeps on-disk op_ids as
+`vldm.preprocessing.*` for interoperability. See [NOTICE](NOTICE) for attribution.
+
 ## Tests
 
 ```sh

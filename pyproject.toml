@@ -6,6 +6,12 @@ build-backend = "setuptools.build_meta"
 name = "sklearn-tabpfn-ext"
 version = "0.1.0"
 description = "Serializable, sklearn-compatible TabPFN preprocessing operators (shared by vldm + ldmkit)"
+license = {text = "Apache-2.0"}
+authors = [{name = "sklearn-tabpfn-ext contributors"}]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+]
 requires-python = ">=3.11"
 dependencies = [
     "scikit-learn>=1.6,<1.7",
@@ -16,6 +22,9 @@ dependencies = [
 [project.optional-dependencies]
 tabpfn = ["tabpfn>=6.3.2,<6.5"]
 dev = ["pytest>=8,<9", "ruff>=0.6"]
+
+[tool.setuptools]
+license-files = ["LICENSE", "NOTICE"]
 
 [tool.setuptools.packages.find]
 include = ["sklearn_tabpfn_ext*"]

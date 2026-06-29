@@ -1,0 +1,22 @@
+sklearn-tabpfn-ext
+Copyright 2026 sklearn-tabpfn-ext contributors
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+these files except in compliance with the License. A copy of the License is
+provided in the LICENSE file in this repository.
+
+-------------------------------------------------------------------------------
+Attribution
+
+This product includes software developed as part of vldm
+(https://github.com/MonadKai/vldm), Copyright vldm contributors, licensed under
+the Apache License, Version 2.0.
+
+The preprocessing operators, JSON/NPZ codec, schema, registry, input sanitizer,
+runtime pipeline, and the TabPFN translator in this library were extracted and
+adapted from vldm — specifically the `vldm/preprocessing/` subsystem and
+`scripts/tabpfn_translator.py`. The code was moved verbatim except for
+intra-package import rewrites (`vldm.preprocessing.*` -> `sklearn_tabpfn_ext.*`)
+and a single behavioral change to the codec: on-disk operator ids are written
+from each operator's registered canonical id (kept as `vldm.preprocessing.*`)
+rather than its Python module path, so artifacts remain interoperable with vldm.
