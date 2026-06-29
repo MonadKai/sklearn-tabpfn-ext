@@ -1,0 +1,162 @@
+"""Cross-impl backward/forward-compat parity check: vldm <-> sklearn-tabpfn-ext.
+
+Migration-period verification (NOT part of the package, NOT run by default CI).
+Proves the keystone guarantee concretely and torch-free: an artifact written by
+vldm's codec (on-disk op_id ``vldm.preprocessing.*``) loads in this library and
+transforms byte-identically, and vice versa — for leaf operators and for a
+nested ``SequentialPipeline`` (the real ``cpu_preprocessor`` shape). This is the
+intended Phase B backward-compatibility gate.
+
+vldm's ``preprocessing`` subpackage is pure-python (sklearn/numpy/pydantic) and
+imports without torch/tabpfn, so this check needs no fitted TabPFN.
+
+Run (from anywhere, in the project's uv env)::
+
+    VLDM_SRC=/path/to/vldm uv run --extra dev python tools/cross_impl_parity_check.py
+
+``VLDM_SRC`` defaults to a sibling ``../vldm`` next to this repo. Exits non-zero
+on any parity mismatch.
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+# vldm source on path BEFORE importing it (pure-python preprocessing, torch-free).
+_DEFAULT_VLDM = Path(__file__).resolve().parent.parent.parent / "vldm"
+VLDM_SRC = os.environ.get("VLDM_SRC", str(_DEFAULT_VLDM))
+sys.path.insert(0, VLDM_SRC)
+
+import numpy as np  # noqa: E402
+
+try:
+    import vldm.preprocessing.codec as vcodec
+    from vldm.preprocessing.composite.sequential import SequentialPipeline as VSeq
+    from vldm.preprocessing.sklearn_wrappers.simple_imputer import (
+        SimpleImputer as VImp,
+    )
+    from vldm.preprocessing.sklearn_wrappers.standard_scaler import (
+        StandardScaler as Vss,
+    )
+    from vldm.preprocessing.sklearn_wrappers.truncated_svd import TruncatedSVD as Vsvd
+except ImportError as exc:  # pragma: no cover - operator/setup guidance
+    sys.exit(f"cannot import vldm.preprocessing from {VLDM_SRC!r}: {exc}\n"
+             "Set VLDM_SRC=/path/to/vldm (the repo root containing the 'vldm' package).")
+
+from sklearn.decomposition import TruncatedSVD as SkSVD  # noqa: E402
+from sklearn.impute import SimpleImputer as SkImp  # noqa: E402
+from sklearn.pipeline import Pipeline as SkPipe  # noqa: E402
+from sklearn.preprocessing import StandardScaler as SkSS  # noqa: E402
+
+import sklearn_tabpfn_ext.codec as ncodec  # noqa: E402
+from sklearn_tabpfn_ext.composite.sequential import SequentialPipeline as NSeq  # noqa: E402
+from sklearn_tabpfn_ext.sklearn_wrappers.simple_imputer import SimpleImputer as NImp  # noqa: E402
+from sklearn_tabpfn_ext.sklearn_wrappers.standard_scaler import StandardScaler as Nss  # noqa: E402
+from sklearn_tabpfn_ext.sklearn_wrappers.truncated_svd import TruncatedSVD as Nsvd  # noqa: E402
+
+assert "torch" not in sys.modules, "torch must NOT be imported (core is torch-free)"
+assert "tabpfn" not in sys.modules, "tabpfn must NOT be imported (this path is core-only)"
+
+SRC = {"kind": "tabpfn", "tabpfn_version": "6.3.2", "estimator_index": 0,
+       "extracted_at": "2026-06-01T00:00:00Z"}
+X = np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.], [2., 1., 0.]], dtype=np.float64)
+PROBE = np.array([[3., 1., 4.], [1., 5., 9.], [2., 6., 5.]], dtype=np.float64)
+
+
+def build(op_cls, sk):
+    """Reconstruct a fitted library op from a fitted sklearn estimator (mirrors _instantiate_with_state)."""
+    init = {k: getattr(sk, k) for k in op_cls._init_param_keys if hasattr(sk, k)}
+    op = op_cls(**init)
+    for k in op_cls._state_keys:
+        op.__dict__[k] = getattr(sk, k)
+    return op
+
+
+def nan_eq(a, b):
+    return np.array_equal(np.nan_to_num(np.asarray(a, float), nan=-7.0),
+                          np.nan_to_num(np.asarray(b, float), nan=-7.0))
+
+
+def main() -> int:
+    failures = []
+
+    leaf_cases = [
+        ("StandardScaler", Vss, Nss, SkSS().fit(X)),
+        ("TruncatedSVD", Vsvd, Nsvd, SkSVD(n_components=2, random_state=0).fit(X)),
+        ("SimpleImputer", VImp, NImp, SkImp().fit(X)),
+    ]
+    for name, vcls, ncls, sk in leaf_cases:
+        sk_t = sk.transform(PROBE)
+        with tempfile.TemporaryDirectory() as d:
+            a = Path(d) / "vldm_written"
+            vcodec.save(build(vcls, sk), a, source_meta=dict(SRC))
+            op_id = json.loads((a / "pipeline.json").read_text())["root"]["op_id"]
+            t_newlib = ncodec.load(a).transform(PROBE)
+            t_vldm = vcodec.load(a).transform(PROBE)
+            b = Path(d) / "newlib_written"
+            ncodec.save(build(ncls, sk), b, source_meta=dict(SRC))
+            op_id_n = json.loads((b / "pipeline.json").read_text())["root"]["op_id"]
+            t_vldm_from_new = vcodec.load(b).transform(PROBE)
+        checks = {
+            "vldm-written op_id is vldm.preprocessing.*": op_id.startswith("vldm.preprocessing."),
+            "newlib-written op_id is vldm.preprocessing.*": op_id_n.startswith("vldm.preprocessing."),
+            "vldm-written -> newlib-load == sklearn": nan_eq(t_newlib, sk_t),
+            "vldm-written -> newlib-load == vldm-load": nan_eq(t_newlib, t_vldm),
+            "newlib-written -> vldm-load == sklearn": nan_eq(t_vldm_from_new, sk_t),
+        }
+        bad = [k for k, ok in checks.items() if not ok]
+        print(f"[{'OK' if not bad else 'FAIL'}] {name}: op_id={op_id}")
+        for k in bad:
+            print(f"      x {k}")
+        if bad:
+            failures.append((name, bad))
+
+    # Nested composite: SequentialPipeline (representative cpu_preprocessor shape).
+    skpipe = SkPipe([("ss", SkSS()), ("imp", SkImp())]).fit(X)  # 3->3->3, dimensionally chainable
+    sk_seq_t = skpipe.transform(PROBE)
+
+    def build_seq(seq_cls, wrap_ss, wrap_imp):
+        return seq_cls(steps=[("ss", build(wrap_ss, skpipe.named_steps["ss"])),
+                              ("imp", build(wrap_imp, skpipe.named_steps["imp"]))])
+
+    with tempfile.TemporaryDirectory() as d:
+        a = Path(d) / "vldm_seq"
+        vcodec.save(build_seq(VSeq, Vss, VImp), a, source_meta=dict(SRC))
+        spec = json.loads((a / "pipeline.json").read_text())["root"]
+        root_id = spec["op_id"]
+        child_ids = [c["op_id"] for c in spec.get("children", [])]
+        seq_newlib = ncodec.load(a).transform(PROBE)
+        seq_vldm = vcodec.load(a).transform(PROBE)
+        b = Path(d) / "newlib_seq"
+        ncodec.save(build_seq(NSeq, Nss, NImp), b, source_meta=dict(SRC))
+        seq_vldm_from_new = vcodec.load(b).transform(PROBE)
+    seq_checks = {
+        "root op_id is vldm.preprocessing.*": root_id.startswith("vldm.preprocessing."),
+        "all child op_ids are vldm.preprocessing.*":
+            bool(child_ids) and all(c.startswith("vldm.preprocessing.") for c in child_ids),
+        "vldm-written seq -> newlib-load == sklearn": nan_eq(seq_newlib, sk_seq_t),
+        "vldm-written seq -> newlib-load == vldm-load": nan_eq(seq_newlib, seq_vldm),
+        "newlib-written seq -> vldm-load == sklearn": nan_eq(seq_vldm_from_new, sk_seq_t),
+    }
+    seq_bad = [k for k, ok in seq_checks.items() if not ok]
+    print(f"[{'OK' if not seq_bad else 'FAIL'}] SequentialPipeline(nested): "
+          f"root={root_id} children={len(child_ids)}")
+    for k in seq_bad:
+        print(f"      x {k}")
+    if seq_bad:
+        failures.append(("SequentialPipeline", seq_bad))
+
+    print()
+    if failures:
+        print(f"PARITY FAILED for {len(failures)} case(s): {[n for n, _ in failures]}")
+        return 1
+    print(f"CROSS-IMPL PARITY: all {len(leaf_cases)} leaf cases + nested SequentialPipeline identical "
+          "bidirectionally (vldm <-> sklearn-tabpfn-ext), op_ids vldm.preprocessing.* at every level.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
