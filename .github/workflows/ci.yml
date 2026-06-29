@@ -1,9 +1,13 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # Auto-triggers (push / pull_request) are intentionally disabled for now: the
+  # MonadKai account's GitHub Actions billing is unpaid, so private-repo jobs
+  # fail at allocation (0 steps, ~2s). Re-enable the two lines below once Actions
+  # minutes are restored — the jobs themselves are correct and ready.
+  #   push:
+  #     branches: [main]
+  #   pull_request:
   workflow_dispatch:
 
 concurrency:
