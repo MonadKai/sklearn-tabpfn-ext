@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    # Required gate: core is sklearn/numpy/pydantic only — fast, no torch.
+    name: core (lint + tests, no tabpfn)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - name: Ruff
+        run: uv run --extra dev ruff check .
+      - name: Tests (core, tabpfn-deselected)
+        run: uv run --extra dev python -m pytest -q -m "not tabpfn"
+
+  tabpfn:
+    # Best-effort: exercises the [tabpfn] translation lane (pulls real tabpfn + torch).
+    # Tests needing a fitted-model fixture (VLDM_TABPFN_BINARY_PICKLE / gpu_ladder) self-skip.
+    # Kept separate from the core gate so the heavy install never blocks core feedback.
+    name: tabpfn lane (best-effort)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - name: Tests (tabpfn extra)
+        run: uv run --extra dev --extra tabpfn python -m pytest -q -m tabpfn
