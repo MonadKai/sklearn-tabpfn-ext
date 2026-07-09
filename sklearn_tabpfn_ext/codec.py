@@ -166,7 +166,7 @@ def save(pipeline, out_dir: Path | str, source_meta: dict[str, Any] | None = Non
                 or {
                     "kind": "tabpfn",
                     "tabpfn_version": None,
-                    "extracted_at": datetime.datetime.now(datetime.UTC).isoformat(),
+                    "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                     "estimator_index": 0,
                 }
             )
@@ -266,7 +266,7 @@ def save_input_sanitizer(san, out_dir, source_tabpfn_version: str) -> None:
             source_meta={
                 "kind": "sklearn",
                 "tabpfn_version": source_tabpfn_version,
-                "extracted_at": datetime.datetime.now(datetime.UTC).isoformat(),
+                "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "estimator_index": -1,
             },
         )

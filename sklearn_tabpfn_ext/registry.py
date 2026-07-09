@@ -20,7 +20,7 @@ def register(op_id: str) -> Callable[[T], T]:
         if op_id in OPERATOR_REGISTRY:
             raise ValueError(f"Operator already registered: {op_id}")
         OPERATOR_REGISTRY[op_id] = cls
-        cls._canonical_op_id = op_id   # NEW: stable wire-format id, decoupled from __module__
+        cls._canonical_op_id = op_id  # NEW: stable wire-format id, decoupled from __module__
         return cls
 
     return deco

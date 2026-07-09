@@ -45,7 +45,9 @@ def profile_for(version: str) -> TranslationProfile:
         parts = version.split(".")  # AttributeError if version is None / non-str
         major, minor = int(parts[0]), int(parts[1])
     except (ValueError, IndexError, AttributeError) as err:
-        raise UnsupportedConversionError("tabpfn", "version", f"unsupported tabpfn {version}") from err
+        raise UnsupportedConversionError(
+            "tabpfn", "version", f"unsupported tabpfn {version}"
+        ) from err
     if (major, minor) == (6, 3):
         return TranslationProfile(version, "v63")
     if (major, minor) == (6, 4):

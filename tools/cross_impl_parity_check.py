@@ -17,6 +17,7 @@ Run (from anywhere, in the project's uv env)::
 ``VLDM_SRC`` defaults to a sibling ``../vldm`` next to this repo. Exits non-zero
 on any parity mismatch.
 """
+
 from __future__ import annotations
 
 import json
@@ -43,8 +44,10 @@ try:
     )
     from vldm.preprocessing.sklearn_wrappers.truncated_svd import TruncatedSVD as Vsvd
 except ImportError as exc:  # pragma: no cover - operator/setup guidance
-    sys.exit(f"cannot import vldm.preprocessing from {VLDM_SRC!r}: {exc}\n"
-             "Set VLDM_SRC=/path/to/vldm (the repo root containing the 'vldm' package).")
+    sys.exit(
+        f"cannot import vldm.preprocessing from {VLDM_SRC!r}: {exc}\n"
+        "Set VLDM_SRC=/path/to/vldm (the repo root containing the 'vldm' package)."
+    )
 
 from sklearn.decomposition import TruncatedSVD as SkSVD  # noqa: E402
 from sklearn.impute import SimpleImputer as SkImp  # noqa: E402
@@ -60,10 +63,14 @@ from sklearn_tabpfn_ext.sklearn_wrappers.truncated_svd import TruncatedSVD as Ns
 assert "torch" not in sys.modules, "torch must NOT be imported (core is torch-free)"
 assert "tabpfn" not in sys.modules, "tabpfn must NOT be imported (this path is core-only)"
 
-SRC = {"kind": "tabpfn", "tabpfn_version": "6.3.2", "estimator_index": 0,
-       "extracted_at": "2026-06-01T00:00:00Z"}
-X = np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.], [2., 1., 0.]], dtype=np.float64)
-PROBE = np.array([[3., 1., 4.], [1., 5., 9.], [2., 6., 5.]], dtype=np.float64)
+SRC = {
+    "kind": "tabpfn",
+    "tabpfn_version": "6.3.2",
+    "estimator_index": 0,
+    "extracted_at": "2026-06-01T00:00:00Z",
+}
+X = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [2.0, 1.0, 0.0]], dtype=np.float64)
+PROBE = np.array([[3.0, 1.0, 4.0], [1.0, 5.0, 9.0], [2.0, 6.0, 5.0]], dtype=np.float64)
 
 
 def build(op_cls, sk):
@@ -76,8 +83,9 @@ def build(op_cls, sk):
 
 
 def nan_eq(a, b):
-    return np.array_equal(np.nan_to_num(np.asarray(a, float), nan=-7.0),
-                          np.nan_to_num(np.asarray(b, float), nan=-7.0))
+    return np.array_equal(
+        np.nan_to_num(np.asarray(a, float), nan=-7.0), np.nan_to_num(np.asarray(b, float), nan=-7.0)
+    )
 
 
 def main() -> int:
@@ -102,7 +110,9 @@ def main() -> int:
             t_vldm_from_new = vcodec.load(b).transform(PROBE)
         checks = {
             "vldm-written op_id is vldm.preprocessing.*": op_id.startswith("vldm.preprocessing."),
-            "newlib-written op_id is vldm.preprocessing.*": op_id_n.startswith("vldm.preprocessing."),
+            "newlib-written op_id is vldm.preprocessing.*": op_id_n.startswith(
+                "vldm.preprocessing."
+            ),
             "vldm-written -> newlib-load == sklearn": nan_eq(t_newlib, sk_t),
             "vldm-written -> newlib-load == vldm-load": nan_eq(t_newlib, t_vldm),
             "newlib-written -> vldm-load == sklearn": nan_eq(t_vldm_from_new, sk_t),
@@ -119,8 +129,12 @@ def main() -> int:
     sk_seq_t = skpipe.transform(PROBE)
 
     def build_seq(seq_cls, wrap_ss, wrap_imp):
-        return seq_cls(steps=[("ss", build(wrap_ss, skpipe.named_steps["ss"])),
-                              ("imp", build(wrap_imp, skpipe.named_steps["imp"]))])
+        return seq_cls(
+            steps=[
+                ("ss", build(wrap_ss, skpipe.named_steps["ss"])),
+                ("imp", build(wrap_imp, skpipe.named_steps["imp"])),
+            ]
+        )
 
     with tempfile.TemporaryDirectory() as d:
         a = Path(d) / "vldm_seq"
@@ -135,15 +149,17 @@ def main() -> int:
         seq_vldm_from_new = vcodec.load(b).transform(PROBE)
     seq_checks = {
         "root op_id is vldm.preprocessing.*": root_id.startswith("vldm.preprocessing."),
-        "all child op_ids are vldm.preprocessing.*":
-            bool(child_ids) and all(c.startswith("vldm.preprocessing.") for c in child_ids),
+        "all child op_ids are vldm.preprocessing.*": bool(child_ids)
+        and all(c.startswith("vldm.preprocessing.") for c in child_ids),
         "vldm-written seq -> newlib-load == sklearn": nan_eq(seq_newlib, sk_seq_t),
         "vldm-written seq -> newlib-load == vldm-load": nan_eq(seq_newlib, seq_vldm),
         "newlib-written seq -> vldm-load == sklearn": nan_eq(seq_vldm_from_new, sk_seq_t),
     }
     seq_bad = [k for k, ok in seq_checks.items() if not ok]
-    print(f"[{'OK' if not seq_bad else 'FAIL'}] SequentialPipeline(nested): "
-          f"root={root_id} children={len(child_ids)}")
+    print(
+        f"[{'OK' if not seq_bad else 'FAIL'}] SequentialPipeline(nested): "
+        f"root={root_id} children={len(child_ids)}"
+    )
     for k in seq_bad:
         print(f"      x {k}")
     if seq_bad:
@@ -153,8 +169,10 @@ def main() -> int:
     if failures:
         print(f"PARITY FAILED for {len(failures)} case(s): {[n for n, _ in failures]}")
         return 1
-    print(f"CROSS-IMPL PARITY: all {len(leaf_cases)} leaf cases + nested SequentialPipeline identical "
-          "bidirectionally (vldm <-> sklearn-tabpfn-ext), op_ids vldm.preprocessing.* at every level.")
+    print(
+        f"CROSS-IMPL PARITY: all {len(leaf_cases)} leaf cases + nested SequentialPipeline identical "
+        "bidirectionally (vldm <-> sklearn-tabpfn-ext), op_ids vldm.preprocessing.* at every level."
+    )
     return 0
 
 

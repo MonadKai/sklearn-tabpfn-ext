@@ -78,7 +78,15 @@ def test_schema_validates_minimal_pipeline_spec():
     from sklearn_tabpfn_ext.schema import OpSpec, PipelineSpec
 
     spec = PipelineSpec.model_validate(
-        {"schema_version": 1, "root": {
-            "op_id": "vldm.preprocessing.ordinal_encoder.OrdinalEncoder",
-            "name": "root", "init_params": {}, "state_keys": [], "children": []}})
+        {
+            "schema_version": 1,
+            "root": {
+                "op_id": "vldm.preprocessing.ordinal_encoder.OrdinalEncoder",
+                "name": "root",
+                "init_params": {},
+                "state_keys": [],
+                "children": [],
+            },
+        }
+    )
     assert isinstance(spec.root, OpSpec)

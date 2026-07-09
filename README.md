@@ -3,6 +3,18 @@
 Shared, transform-only TabPFN preprocessing operators + JSON/NPZ codec,
 extracted from vldm. See the ldmkit design spec.
 
+## Release status
+
+This package is currently pre-0.1.  A `v0.1.0` release should mean the
+preprocessing implementation is complete for both vldm and ldmkit:
+
+- vldm can hard-depend on this package at runtime;
+- ldmkit can ingest TabPFN models through this package;
+- old vldm-written artifacts, new ext-written artifacts, and ldmkit-written
+  model repositories pass the compatibility gate.
+
+Until those gates are green, the package version remains below `0.1.0`.
+
 ## License & provenance
 
 Apache-2.0 (see [LICENSE](LICENSE)). This library was extracted and adapted from
