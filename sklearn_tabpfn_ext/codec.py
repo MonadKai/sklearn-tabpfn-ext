@@ -455,3 +455,8 @@ def _build_op(spec: OpSpec, npz: Any, op_path: str) -> Any:
                 setattr(obj, attr_name, built_child)
 
     return obj
+
+
+# Public aliases for compatibility facades that need graph-level codec helpers.
+serialise_op = _serialise_op
+build_op = _build_op

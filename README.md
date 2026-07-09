@@ -20,7 +20,7 @@ release tag is cut intentionally.
 Current downstream pin while pre-0.1:
 
 ```text
-sklearn-tabpfn-ext @ git+https://github.com/MonadKai/sklearn-tabpfn-ext.git@62202cb
+sklearn-tabpfn-ext @ git+https://github.com/MonadKai/sklearn-tabpfn-ext.git@0a22df8
 ```
 
 ## License & provenance
