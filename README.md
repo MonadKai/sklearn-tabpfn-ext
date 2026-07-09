@@ -13,7 +13,15 @@ preprocessing implementation is complete for both vldm and ldmkit:
 - old vldm-written artifacts, new ext-written artifacts, and ldmkit-written
   model repositories pass the compatibility gate.
 
-Until those gates are green, the package version remains below `0.1.0`.
+The 2026-07-09 readiness pass completed those compatibility gates against the
+pre-0.1 commit line. The package version remains below `0.1.0` until the
+release tag is cut intentionally.
+
+Current downstream pin while pre-0.1:
+
+```text
+sklearn-tabpfn-ext @ git+https://github.com/MonadKai/sklearn-tabpfn-ext.git@62202cb
+```
 
 ## License & provenance
 
@@ -29,6 +37,10 @@ import-namespace rewrites and a codec change that keeps on-disk op_ids as
 uv run --extra dev python -m pytest -q -m "not tabpfn"   # core (sklearn/numpy/pydantic only)
 uv run --extra dev --extra tabpfn python -m pytest -q -m tabpfn   # translator lane (needs torch)
 ```
+
+For local cross-repository readiness, the real TabPFN lane can also be run from
+the `ldmkit` environment with this checkout on `PYTHONPATH` to avoid repeated
+torch/CUDA downloads.
 
 ## Migration: cross-impl parity (vldm ↔ sklearn-tabpfn-ext)
 
