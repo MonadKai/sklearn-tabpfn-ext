@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sklearn-tabpfn-ext"
-version = "0.0.0"
+version = "0.1.0"
 description = "Serializable, sklearn-compatible TabPFN preprocessing operators (shared by vldm + ldmkit)"
 license = {text = "Apache-2.0"}
 authors = [{name = "sklearn-tabpfn-ext contributors"}]

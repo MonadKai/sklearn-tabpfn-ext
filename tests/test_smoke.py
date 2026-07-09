@@ -1,7 +1,7 @@
 def test_package_imports():
     import sklearn_tabpfn_ext
 
-    assert sklearn_tabpfn_ext.__version__ == "0.0.0"
+    assert sklearn_tabpfn_ext.__version__ == "0.1.0"
 
 
 def test_tabpfn_public_api_imports_without_tabpfn_or_torch():
@@ -9,7 +9,9 @@ def test_tabpfn_public_api_imports_without_tabpfn_or_torch():
 
     from sklearn_tabpfn_ext.tabpfn import (
         TranslationProfile,
+        categorical_indices,
         profile_for,
+        translate_categorical_step,
         translate_input_sanitizer,
         translate_member,
         translate_sklearn_obj,
@@ -21,3 +23,5 @@ def test_tabpfn_public_api_imports_without_tabpfn_or_torch():
     assert callable(translate_sklearn_obj)
     assert "tabpfn" not in sys.modules
     assert "torch" not in sys.modules
+    assert callable(categorical_indices)
+    assert callable(translate_categorical_step)

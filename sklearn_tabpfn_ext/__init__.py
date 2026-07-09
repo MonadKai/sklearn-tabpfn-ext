@@ -6,7 +6,7 @@ decorators populate OPERATOR_REGISTRY exactly once.
 
 from __future__ import annotations
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 # Foundation modules (trigger registration of every class)
 from sklearn_tabpfn_ext import (  # noqa: F401

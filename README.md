@@ -5,20 +5,16 @@ extracted from vldm. See the ldmkit design spec.
 
 ## Release status
 
-This package is currently pre-0.1.  A `v0.1.0` release should mean the
-preprocessing implementation is complete for both vldm and ldmkit:
+`v0.1.0` means the preprocessing implementation is complete for both vldm and
+ldmkit:
 
 - vldm can hard-depend on this package at runtime;
 - ldmkit can ingest TabPFN models through this package;
 - old vldm-written artifacts, new ext-written artifacts, and ldmkit-written
   model repositories pass the compatibility gate.
 
-The 2026-07-09 readiness pass completed those compatibility gates against the
-pre-0.1 commit line. The package version remains below `0.1.0` until the
-release tag is cut intentionally.
-
-Downstream repositories pin a specific pre-0.1 commit in their own
-`pyproject.toml` files until the release tag is cut.
+The 2026-07-09 readiness pass completed those compatibility gates, and
+`v0.1.0` is the first release tag with this support boundary.
 
 ## License & provenance
 
