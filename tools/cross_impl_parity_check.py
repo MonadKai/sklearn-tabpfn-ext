@@ -35,7 +35,12 @@ import numpy as np  # noqa: E402
 
 try:
     import vldm.preprocessing.codec as vcodec
+    from vldm.preprocessing.composite.column_transformer import (
+        ColumnTransformer as VColumnTransformer,
+    )
     from vldm.preprocessing.composite.sequential import SequentialPipeline as VSeq
+    from vldm.preprocessing.input_sanitizer import InputSanitizer as VInputSanitizer
+    from vldm.preprocessing.ordinal_encoder import OrdinalEncoder as VOrdinalEncoder
     from vldm.preprocessing.sklearn_wrappers.simple_imputer import (
         SimpleImputer as VImp,
     )
@@ -52,10 +57,16 @@ except ImportError as exc:  # pragma: no cover - operator/setup guidance
 from sklearn.decomposition import TruncatedSVD as SkSVD  # noqa: E402
 from sklearn.impute import SimpleImputer as SkImp  # noqa: E402
 from sklearn.pipeline import Pipeline as SkPipe  # noqa: E402
+from sklearn.preprocessing import OrdinalEncoder as SkOrd  # noqa: E402
 from sklearn.preprocessing import StandardScaler as SkSS  # noqa: E402
 
 import sklearn_tabpfn_ext.codec as ncodec  # noqa: E402
+from sklearn_tabpfn_ext.composite.column_transformer import (  # noqa: E402
+    ColumnTransformer as NColumnTransformer,
+)
 from sklearn_tabpfn_ext.composite.sequential import SequentialPipeline as NSeq  # noqa: E402
+from sklearn_tabpfn_ext.input_sanitizer import InputSanitizer as NInputSanitizer  # noqa: E402
+from sklearn_tabpfn_ext.ordinal_encoder import OrdinalEncoder as NOrdinalEncoder  # noqa: E402
 from sklearn_tabpfn_ext.sklearn_wrappers.simple_imputer import SimpleImputer as NImp  # noqa: E402
 from sklearn_tabpfn_ext.sklearn_wrappers.standard_scaler import StandardScaler as Nss  # noqa: E402
 from sklearn_tabpfn_ext.sklearn_wrappers.truncated_svd import TruncatedSVD as Nsvd  # noqa: E402
@@ -71,6 +82,8 @@ SRC = {
 }
 X = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [2.0, 1.0, 0.0]], dtype=np.float64)
 PROBE = np.array([[3.0, 1.0, 4.0], [1.0, 5.0, 9.0], [2.0, 6.0, 5.0]], dtype=np.float64)
+SAN_X = np.array([[0.1, 1.0], [0.2, 2.0], [0.3, np.nan], [0.4, 1.0]], dtype=np.float64)
+SAN_PROBE = np.array([[9.0, 2.0], [8.0, 99.0], [7.0, np.nan]], dtype=np.float64)
 
 
 def build(op_cls, sk):
@@ -85,6 +98,26 @@ def build(op_cls, sk):
 def nan_eq(a, b):
     return np.array_equal(
         np.nan_to_num(np.asarray(a, float), nan=-7.0), np.nan_to_num(np.asarray(b, float), nan=-7.0)
+    )
+
+
+def build_sanitizer(input_sanitizer_cls, column_transformer_cls, ordinal_encoder_cls):
+    sk = SkOrd(
+        dtype=np.float64,
+        handle_unknown="use_encoded_value",
+        unknown_value=-1,
+        encoded_missing_value=np.nan,
+    ).fit(SAN_X[:, [1]])
+    enc = ordinal_encoder_cls.from_sklearn(sk)
+    ct = column_transformer_cls(
+        transformers=[("ordinal", enc, [1])],
+        remainder="passthrough",
+    )
+    column_transformer_cls._from_state_dict(ct, {"n_features_in_": np.asarray(2)})
+    return input_sanitizer_cls(
+        n_features_in=2,
+        inferred_categorical_indices=[1],
+        column_transformer=ct,
     )
 
 
@@ -165,13 +198,44 @@ def main() -> int:
     if seq_bad:
         failures.append(("SequentialPipeline", seq_bad))
 
+    # Classifier-level InputSanitizer sidecar, including nested encoder artifact.
+    v_san = build_sanitizer(VInputSanitizer, VColumnTransformer, VOrdinalEncoder)
+    n_san = build_sanitizer(NInputSanitizer, NColumnTransformer, NOrdinalEncoder)
+    expected_san_t = v_san.transform(SAN_PROBE)
+    with tempfile.TemporaryDirectory() as d:
+        a = Path(d) / "vldm_sanitizer"
+        vcodec.save_input_sanitizer(v_san, a, source_tabpfn_version=SRC["tabpfn_version"])
+        san_from_vldm = ncodec.load_input_sanitizer(a)
+        t_newlib_san = san_from_vldm.transform(SAN_PROBE)
+
+        b = Path(d) / "newlib_sanitizer"
+        ncodec.save_input_sanitizer(n_san, b, source_tabpfn_version=SRC["tabpfn_version"])
+        san_from_newlib = vcodec.load_input_sanitizer(b)
+        t_vldm_san = san_from_newlib.transform(SAN_PROBE)
+
+    san_checks = {
+        "vldm-written sanitizer -> newlib-load == vldm": nan_eq(t_newlib_san, expected_san_t),
+        "newlib-written sanitizer -> vldm-load == vldm": nan_eq(t_vldm_san, expected_san_t),
+        "vldm-written sanitizer metadata preserved": san_from_vldm.n_features_in == 2
+        and san_from_vldm.inferred_categorical_indices == [1],
+        "newlib-written sanitizer metadata preserved": san_from_newlib.n_features_in == 2
+        and san_from_newlib.inferred_categorical_indices == [1],
+    }
+    san_bad = [k for k, ok in san_checks.items() if not ok]
+    print(f"[{'OK' if not san_bad else 'FAIL'}] InputSanitizer(sidecar)")
+    for k in san_bad:
+        print(f"      x {k}")
+    if san_bad:
+        failures.append(("InputSanitizer", san_bad))
+
     print()
     if failures:
         print(f"PARITY FAILED for {len(failures)} case(s): {[n for n, _ in failures]}")
         return 1
     print(
-        f"CROSS-IMPL PARITY: all {len(leaf_cases)} leaf cases + nested SequentialPipeline identical "
-        "bidirectionally (vldm <-> sklearn-tabpfn-ext), op_ids vldm.preprocessing.* at every level."
+        f"CROSS-IMPL PARITY: all {len(leaf_cases)} leaf cases + nested SequentialPipeline "
+        "+ InputSanitizer sidecar identical bidirectionally (vldm <-> sklearn-tabpfn-ext), "
+        "op_ids vldm.preprocessing.* at every level."
     )
     return 0
 

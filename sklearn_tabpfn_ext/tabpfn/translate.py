@@ -1,12 +1,14 @@
-"""scripts/tabpfn_translator.py — recursive translator from tabpfn / sklearn objects to vldm.
+"""Translate fitted tabpfn / sklearn preprocessing objects into ext operators.
 
-This is one of only two places in the repo allowed to ``import tabpfn``
-(the other is scripts/extract_model.py). It runs offline as part of
-extraction; vldm runtime never executes this code.
+The module is intended for offline extraction and ingestion paths. Runtime
+vldm loading should use :mod:`sklearn_tabpfn_ext.codec` and must not import
+``tabpfn`` or ``torch``. Imports of real tabpfn internals stay lazy inside the
+version-specific branches that need them.
 
 Usage::
 
-    from tabpfn_translator import translate_member
+    from sklearn_tabpfn_ext.tabpfn import translate_member
+
     pipeline = translate_member(member)   # member is an ensemble member
 """
 
