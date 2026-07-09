@@ -17,11 +17,8 @@ The 2026-07-09 readiness pass completed those compatibility gates against the
 pre-0.1 commit line. The package version remains below `0.1.0` until the
 release tag is cut intentionally.
 
-Current downstream pin while pre-0.1:
-
-```text
-sklearn-tabpfn-ext @ git+https://github.com/MonadKai/sklearn-tabpfn-ext.git@0a22df8
-```
+Downstream repositories pin a specific pre-0.1 commit in their own
+`pyproject.toml` files until the release tag is cut.
 
 ## License & provenance
 
