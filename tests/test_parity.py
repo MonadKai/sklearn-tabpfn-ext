@@ -35,7 +35,7 @@ def members_and_x():
 
 @pytest.mark.parametrize("variant", ["normal", "all_zero", "all_nan", "constant_columns"])
 def test_parity_per_member(members_and_x, variant):
-    from sklearn_tabpfn_ext.tabpfn.translate import translate_member
+    from sklearn_tabpfn_ext.tabpfn import translate_member
 
     members, X = members_and_x
     if variant == "all_zero":

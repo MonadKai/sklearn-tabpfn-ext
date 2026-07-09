@@ -5,7 +5,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OrdinalEncoder as SkOrdinalEncoder
 
 from sklearn_tabpfn_ext.exceptions import UnsupportedConversionError
-from sklearn_tabpfn_ext.tabpfn.translate import translate_input_sanitizer
+from sklearn_tabpfn_ext.tabpfn import translate_input_sanitizer
 
 pytestmark = pytest.mark.tabpfn
 

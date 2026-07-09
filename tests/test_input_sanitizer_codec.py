@@ -10,7 +10,7 @@ from sklearn.preprocessing import OrdinalEncoder as SkOrdinalEncoder
 
 from sklearn_tabpfn_ext.codec import load_input_sanitizer, save_input_sanitizer
 from sklearn_tabpfn_ext.input_sanitizer import InputSanitizer
-from sklearn_tabpfn_ext.tabpfn.translate import translate_input_sanitizer
+from sklearn_tabpfn_ext.tabpfn import translate_input_sanitizer
 
 pytestmark = pytest.mark.tabpfn
 

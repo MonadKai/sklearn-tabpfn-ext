@@ -11,4 +11,4 @@
 - Record the 2026-07-09 downstream readiness pass: vldm facade/runtime gates,
   ldmkit ingest -> vldm validate/bake/validate gate, old artifact smoke, new
   ext-written artifact gate, and real TabPFN translator lane all passed against
-  the pre-0.1 commit line.
+  the restored `v0.1.0` release line.
