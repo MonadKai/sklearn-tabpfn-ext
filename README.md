@@ -13,8 +13,10 @@ ldmkit:
 - old vldm-written artifacts, new ext-written artifacts, and ldmkit-written
   model repositories pass the compatibility gate.
 
-The 2026-07-09 readiness pass completed those compatibility gates, and
-`v0.1.0` is the first release tag with this support boundary.
+The 2026-07-09 readiness pass completed those compatibility gates. The
+2026-07-10 refresh re-ran core/default gates across `sklearn-tabpfn-ext`,
+`ldmkit`, and `vldm`, and kept `v0.1.0` as the first release tag with this
+support boundary.
 
 ## License & provenance
 
