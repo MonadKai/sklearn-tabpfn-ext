@@ -26,6 +26,12 @@ Apache-2.0 (see [LICENSE](LICENSE)). This library was extracted and adapted from
 import-namespace rewrites and a codec change that keeps on-disk op_ids as
 `vldm.preprocessing.*` for interoperability. See [NOTICE](NOTICE) for attribution.
 
+The current LDM ecosystem role split is documented in
+[`docs/ecosystem-positioning.md`](docs/ecosystem-positioning.md). This package
+owns preprocessing semantics and codec behavior only; source repositories belong
+to `ldmkit`, executable artifacts and inference belong to `vldm`, and deployment
+policy belongs to `ldm-platform`.
+
 ## Tests
 
 ```sh
