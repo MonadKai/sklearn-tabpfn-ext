@@ -4,8 +4,7 @@ This estimator is a thin sklearn-compatible wrapper around a *fitted*
 ``sklearn.pipeline.Pipeline`` (typically QuantileTransformer +
 TruncatedSVD). It exists for two reasons:
 
-1. To give the conversion script (``scripts/extract_model.py``) a stable
-   entry point for storing tabpfn's
+1. To give source-conversion tooling a stable entry point for storing tabpfn's
    ``ReshapeFeatureDistributionsStep.transformer_`` — the underlying
    ``sklearn.Pipeline`` is reused as-is (sklearn primitives, not
    reimplemented), but vldm wraps it so we can record extra fitted state
@@ -15,7 +14,7 @@ TruncatedSVD). It exists for two reasons:
    etc.
 
 We do **not** reimplement QuantileTransformer or TruncatedSVD — those are
-stable sklearn primitives. The conversion script extracts the fitted
+stable sklearn primitives. Source-conversion tooling extracts the fitted
 ``transformer_`` Pipeline directly.
 """
 

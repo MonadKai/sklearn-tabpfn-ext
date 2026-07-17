@@ -893,7 +893,7 @@ def translate_member(member, profile=None) -> _vldm.SequentialPipeline:
     ``SequentialPipeline`` (step names auto-generated as "step_0" … "step_4")
     with zero tabpfn references.
 
-    This is the top-level entry point called from ``scripts/extract_model.py``.
+    This is the top-level entry point called from source-conversion tooling.
     """
     sk_pipeline = member.cpu_preprocessor
     return translate_sklearn_obj(sk_pipeline, op_path="cpu_preprocessor", profile=profile)
